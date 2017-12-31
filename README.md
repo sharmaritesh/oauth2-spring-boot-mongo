@@ -13,12 +13,11 @@ In package
   - password
   - client_credentails
   - refresh_token
-
+7. JWT token store
 
 Still in progress
 -----------------
 1. Approval flow
-2. JWT token store
 
 Description
 -----------
@@ -45,8 +44,11 @@ How to run
 6. Once the token is obtained you can access the resource using 
   GET http://localhost:8082/resource-service/foo
   Headers - Authorization : Bearer <token>
-  
+
+7. If you would like to use JWT as a token store then run using -Dspring.profiles.active=jwttoken
+
+
 Simmilarly You can try executing other OAuth2 grant types.
-Note : Pass 'init' as program arg to setup initial data.
+<br/> Note : Pass 'init' as program arg to setup initial data.
 
   
