@@ -2,12 +2,10 @@ package com.rites.sample.oauth2.authserver.conf;
 
 import com.rites.sample.oauth2.authserver.library.MongoAuthorizationCodeServices;
 import com.rites.sample.oauth2.authserver.library.MongoClientDetailsService;
-import com.rites.sample.oauth2.authserver.library.MongoTokenStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.context.annotation.Profile;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
@@ -21,26 +19,26 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
 import org.springframework.security.oauth2.provider.token.DefaultTokenServices;
 import org.springframework.security.oauth2.provider.token.TokenEnhancer;
+import org.springframework.security.oauth2.provider.token.TokenEnhancerChain;
+import org.springframework.security.oauth2.provider.token.TokenStore;
+import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 
 @Configuration
 @EnableAuthorizationServer
 public class AuthServerConfig extends AuthorizationServerConfigurerAdapter {
-    @Autowired
-    private AuthenticationManager authenticationManager;
+    @Autowired private AuthenticationManager authenticationManager;
+    @Autowired private TokenStore tokenStore;
+    @Autowired(required = false) private JwtAccessTokenConverter accessTokenConverter;
 
     @Bean
     public MongoClientDetailsService clientDetailsService() {
         return new MongoClientDetailsService();
-    }
-
-    @Bean
-    @Profile("!jwttoken")
-    public MongoTokenStore tokenStore() {
-        return new MongoTokenStore();
     }
 
     @Bean
@@ -72,8 +70,15 @@ public class AuthServerConfig extends AuthorizationServerConfigurerAdapter {
     public DefaultTokenServices tokenServices() {
         DefaultTokenServices tokenServices = new DefaultTokenServices();
         tokenServices.setSupportRefreshToken(true);
-        tokenServices.setTokenStore(tokenStore());
-        tokenServices.setTokenEnhancer(new TokenEnhancer() {
+        tokenServices.setTokenStore(tokenStore);
+
+        List<TokenEnhancer> enhancers = new ArrayList<>();
+        if (accessTokenConverter != null) {
+            enhancers.add(accessTokenConverter);
+        }
+
+        //Some custom enhancer
+        enhancers.add(new TokenEnhancer() {
             @Override
             public OAuth2AccessToken enhance(OAuth2AccessToken accessToken, OAuth2Authentication authentication) {
                 final Authentication userAuthentication = authentication.getUserAuthentication();
@@ -93,6 +98,11 @@ public class AuthServerConfig extends AuthorizationServerConfigurerAdapter {
                 return defaultOAuth2AccessToken;
             }
         });
+
+        TokenEnhancerChain enhancerChain = new TokenEnhancerChain();
+        enhancerChain.setTokenEnhancers(enhancers);
+        tokenServices.setTokenEnhancer(enhancerChain);
+
         return tokenServices;
     }
 }

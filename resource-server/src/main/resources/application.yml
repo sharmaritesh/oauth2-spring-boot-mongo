@@ -1,3 +1,7 @@
 server:
   port: 8082
   context-path: /resource-service
+
+logging:
+ level:
+  org.springframework.security: DEBUG
